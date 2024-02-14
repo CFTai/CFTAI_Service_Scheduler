@@ -23,18 +23,13 @@ const mongoConnectionString = process.env.MONGO_URI;
 
 // agenda.define('dataExport', { priority: 'high' }, (job) => {
 
+const rapid_agenda = new Agenda({ db: { address: mongoConnectionString, collection: 'scheduleJob' } });
 
-
-const rapid_agenda = new Agenda({ db: { address: mongoConnectionString, collection: 'rapidFootball' } });
-
-rapid_agenda.define('fixtureRounds', async () => {
+const definedService = async (url, params) => {
   const options = {
     method: 'GET',
-    url: 'https://api-football-v1.p.rapidapi.com/v3/fixtures/rounds',
-    params: {
-      league: '39',
-      season: '2023'
-    },
+    url: process.env.X_RapidAPI_Path + url,
+    params: params,
     headers: {
       'X-RapidAPI-Key': process.env.X_RapidAPI_Key,
       'X-RapidAPI-Host': process.env.X_RapidAPI_Host
@@ -46,8 +41,19 @@ rapid_agenda.define('fixtureRounds', async () => {
   } catch (error) {
     console.error(error);
   }
+}
+
+rapid_agenda.define('fixtureRounds', (job) => {
+  const { url, params } = job.attrs.data;
+  definedService(url, params);
 })
 
 await rapid_agenda.start();
 
-await rapid_agenda.every('5 seconds', 'fixtureRounds');
+await rapid_agenda.every('5 seconds', 'fixtureRounds', {
+  url: 'fixtures/rounds',
+  params: {
+    league: '39',
+    season: '2023'
+  }
+});
